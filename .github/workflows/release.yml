@@ -1,0 +1,69 @@
+name: Release
+
+# Een versie uitbrengen kan op twee manieren (zie RELEASING.md):
+#  - in GitHub: Actions → "Nieuwe versie" → Run workflow (verhoogt de versie, maakt de tag en start deze workflow)
+#  - lokaal: `npm run release` (verhoogt de versie, maakt een tag en pusht die)
+# Deze workflow bouwt dan de app voor macOS, Windows en Linux en zet de bestanden in een GitHub Release.
+# De app van gebruikers kijkt daar zelf naar nieuwe versies (knop "Update" in de app).
+on:
+  push:
+    tags: ['v*']
+  # wordt ook gestart door de workflow "Nieuwe versie" (een tag die met GITHUB_TOKEN gepusht is, start zelf niets)
+  workflow_dispatch:
+
+permissions:
+  contents: write # nodig om de release aan te maken en bestanden toe te voegen
+
+jobs:
+  release:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # true als er een Apple-certificaat in de repository-secrets staat (zie README: "Ondertekenen op macOS")
+      HAS_MAC_CERT: ${{ secrets.MAC_CERTIFICATE != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+
+      # De tag en de versie in package.json moeten hetzelfde zijn, anders krijgt de release het verkeerde nummer
+      - name: Tag en versie controleren
+        shell: bash
+        run: |
+          version=$(node -p "require('./package.json').version")
+          if [ "$GITHUB_REF_NAME" != "v$version" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME past niet bij versie $version in package.json"
+            exit 1
+          fi
+
+      # Niet publiceren als het niet klopt
+      - run: npm run typecheck
+      - run: npm test
+
+      - name: Bouwen en publiceren (Windows en Linux)
+        if: runner.os != 'macOS'
+        run: npm run dist -- --publish always
+
+      - name: Bouwen en publiceren (macOS, ondertekend en genotariseerd)
+        if: runner.os == 'macOS' && env.HAS_MAC_CERT == 'true'
+        run: npm run dist -- --mac --publish always -c.mac.notarize=true
+        env:
+          CSC_LINK: ${{ secrets.MAC_CERTIFICATE }}
+          CSC_KEY_PASSWORD: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
+      - name: 'Bouwen en publiceren (macOS, niet ondertekend: updaten binnen de app werkt dan niet op de Mac)'
+        if: runner.os == 'macOS' && env.HAS_MAC_CERT != 'true'
+        run: npm run dist -- --mac --publish always -c.mac.identity=null
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'

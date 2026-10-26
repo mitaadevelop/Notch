@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "module": "nodenext",
+    "verbatimModuleSyntax": false,
+    "isolatedModules": true,
+    "lib": ["ES2023"],
+    "types": ["node"]
+  },
+  "include": ["src/main.ts", "src/preload.ts", "src/mcp.ts", "src/shared/**/*.ts"]
+}

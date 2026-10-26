@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    env:
+      CI: true
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1' # Playwright stuurt Electron aan, geen eigen browsers nodig
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run audit
+      - run: npm run test:coverage
+
+      # E2E: Linux heeft een virtueel scherm nodig. De visuele regressietests slaan zichzelf over buiten macOS
+      # (de baseline staat per platform; zie tests/e2e/visual.spec.ts).
+      - name: E2E (Linux)
+        if: runner.os == 'Linux'
+        run: xvfb-run --auto-servernum npm run test:e2e
+      - name: E2E (Windows en macOS)
+        if: runner.os != 'Linux'
+        run: npm run test:e2e
+
+      - name: Rapporten bewaren bij falen
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-${{ matrix.os }}
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore

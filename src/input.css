@@ -1,0 +1,209 @@
+@import 'tailwindcss';
+
+/* kleuren volgen het systeemthema (licht/donker), net als Apple Agenda */
+:root {
+  color-scheme: light dark;
+  --canvas: #ffffff;
+  --sidebar: #f6f6f6;
+  --fg: #1d1d1f;
+  --muted: #86868b;
+  --line: rgba(0, 0, 0, 0.1);
+  --fill: rgba(0, 0, 0, 0.06);
+  --seg: #ffffff;
+  --accent: #007aff;
+  --today: #ff3b30;
+  --cal-red: #ff3b30;
+  --cal-orange: #ff9500;
+  --cal-yellow: #ffcc00;
+  --cal-green: #34c759;
+  --cal-blue: #007aff;
+  --cal-purple: #af52de;
+  --cal-brown: #a2845e;
+  --cal-gray: #8e8e93;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --canvas: #1e1e1e;
+    --sidebar: #2a2a2c;
+    --fg: #f5f5f7;
+    --muted: #98989d;
+    --line: rgba(255, 255, 255, 0.12);
+    --fill: rgba(255, 255, 255, 0.1);
+    --seg: rgba(255, 255, 255, 0.2);
+    --accent: #0a84ff;
+    --today: #ff453a;
+    --cal-red: #ff453a;
+    --cal-orange: #ff9f0a;
+    --cal-yellow: #ffd60a;
+    --cal-green: #30d158;
+    --cal-blue: #0a84ff;
+    --cal-purple: #bf5af2;
+    --cal-brown: #ac8e68;
+    --cal-gray: #98989d;
+  }
+}
+
+/* op macOS schijnt het vibrancy-effect van het venster door de zijbalk heen */
+@media (prefers-color-scheme: light) {
+  :root.vibrancy {
+    --sidebar: rgba(246, 246, 246, 0.6);
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root.vibrancy {
+    --sidebar: rgba(40, 40, 42, 0.55);
+  }
+}
+
+@theme inline {
+  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+  --color-canvas: var(--canvas);
+  --color-sidebar: var(--sidebar);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-fill: var(--fill);
+  --color-seg: var(--seg);
+  --color-accent: var(--accent);
+  --color-today: var(--today);
+  --color-cal-red: var(--cal-red);
+  --color-cal-orange: var(--cal-orange);
+  --color-cal-yellow: var(--cal-yellow);
+  --color-cal-green: var(--cal-green);
+  --color-cal-blue: var(--cal-blue);
+  --color-cal-purple: var(--cal-purple);
+  --color-cal-brown: var(--cal-brown);
+  --color-cal-gray: var(--cal-gray);
+}
+
+/* --- animaties: korte, zachte overgangen voor alles wat reageert op de muis --- */
+@layer base {
+  button,
+  input,
+  select,
+  textarea {
+    transition-property: background-color, color, border-color, box-shadow, opacity, filter, transform;
+    transition-duration: 160ms;
+    transition-timing-function: cubic-bezier(0.2, 0.7, 0.3, 1);
+  }
+
+  /* indrukken geeft een klein "klik"-gevoel; brede knoppen (lijstkoppen) krimpen nauwelijks */
+  button:not(:disabled):active {
+    transform: scale(0.96);
+  }
+
+  button.w-full:not(:disabled):active {
+    transform: scale(0.995);
+  }
+}
+
+/* afspraken en dagcellen: alleen kleur, schaduw en doorzichtigheid animeren, nooit positie of transform (slepen blijft direct) */
+[data-okey],
+[data-key] {
+  transition:
+    filter 150ms ease,
+    box-shadow 150ms ease,
+    opacity 150ms ease,
+    background-color 150ms ease;
+}
+
+/* dialogen schuiven en vervagen in en uit; display/overlay met allow-discrete houden ze zichtbaar tijdens het sluiten */
+dialog {
+  opacity: 0;
+  transform: scale(0.96);
+  transition:
+    opacity 200ms ease,
+    transform 320ms var(--ease-spring),
+    overlay 240ms allow-discrete,
+    display 240ms allow-discrete;
+}
+
+dialog[open] {
+  opacity: 1;
+  transform: none;
+}
+
+@starting-style {
+  dialog[open] {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+}
+
+dialog::backdrop {
+  transition:
+    background-color 240ms ease,
+    overlay 240ms allow-discrete,
+    display 240ms allow-discrete;
+}
+
+dialog:not([open])::backdrop {
+  background-color: transparent;
+}
+
+@starting-style {
+  dialog[open]::backdrop {
+    background-color: transparent;
+  }
+}
+
+/* één veer voor alles wat "landt" (dezelfde curve als EASE.spring in motion.ts) */
+:root {
+  --ease-spring: linear(0, 0.18 4%, 0.52 9%, 0.84 15%, 1.04 22%, 1.07 27%, 1.04 33%, 0.99 42%, 0.98 50%, 1 62%, 1 100%);
+}
+
+/* het bolletje van de "nu"-lijn zendt een zachte ring uit */
+.now-dot::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background-color: var(--color-today);
+  animation: now-pulse 2.6s ease-out infinite;
+}
+
+@keyframes now-pulse {
+  from {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(3.2);
+  }
+}
+
+/* het snel-invoeren-venster klapt open */
+#quick:not([hidden]) {
+  animation: pop-in 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* afspraken die je kunt oppakken krijgen een open hand, en een gesloten hand tijdens het slepen */
+[data-okey][draggable='true'],
+[data-okey][data-movable] {
+  cursor: grab;
+}
+
+[data-okey][draggable='true']:active,
+[data-okey][data-movable]:active {
+  cursor: grabbing;
+}

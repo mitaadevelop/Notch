@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fffdf8"/>
+      <stop offset="1" stop-color="#f1ebe0"/>
+    </linearGradient>
+    <linearGradient id="coral" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ff7a45"/>
+      <stop offset="1" stop-color="#ff4d5e"/>
+    </linearGradient>
+    <linearGradient id="blue" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#4f7cff"/>
+      <stop offset="1" stop-color="#7a4dff"/>
+    </linearGradient>
+    <linearGradient id="mint" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#1fd1a5"/>
+      <stop offset="1" stop-color="#14b6c9"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="14" stdDeviation="16" flood-color="#2a1d0a" flood-opacity=".3"/>
+    </filter>
+    <filter id="soft" x="-20%" y="-30%" width="140%" height="190%">
+      <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#2a1d0a" flood-opacity=".18"/>
+    </filter>
+  </defs>
+  <!-- tegel -->
+  <rect x="100" y="100" width="824" height="824" rx="186" fill="url(#bg)" filter="url(#shadow)"/>
+  <!-- afspraken als blokken in de tijd -->
+  <rect x="236" y="272" width="380" height="132" rx="66" fill="url(#coral)" filter="url(#soft)"/>
+  <rect x="404" y="446" width="384" height="132" rx="66" fill="url(#blue)" filter="url(#soft)"/>
+  <rect x="236" y="620" width="290" height="132" rx="66" fill="url(#mint)" filter="url(#soft)"/>
+  <!-- nu -->
+  <rect x="574" y="214" width="26" height="596" rx="13" fill="#fffdf8" opacity=".9"/>
+  <rect x="580" y="214" width="14" height="596" rx="7" fill="#1d1a16"/>
+  <circle cx="587" cy="214" r="30" fill="#1d1a16"/>
+</svg>

@@ -1,0 +1,474 @@
+<!doctype html>
+<html lang="nl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Agenda</title>
+    <link rel="stylesheet" href="output.css" />
+  </head>
+  <body class="h-screen overflow-hidden bg-transparent font-sans text-fg antialiased select-none">
+    <div class="flex h-full">
+      <aside class="flex w-60 shrink-0 flex-col border-r border-line bg-sidebar">
+        <!-- ruimte voor de stoplichtknoppen van macOS -->
+        <div class="h-12 shrink-0 [-webkit-app-region:drag]"></div>
+
+        <section class="px-3 pb-3">
+          <div class="mb-1 flex items-center justify-between px-1">
+            <h2 id="mini-title" class="text-sm font-semibold capitalize"></h2>
+            <div class="flex">
+              <button id="mini-prev" type="button" aria-label="Vorige maand" class="rounded-md px-1.5 text-muted hover:bg-fill hover:text-fg">‹</button>
+              <button id="mini-next" type="button" aria-label="Volgende maand" class="rounded-md px-1.5 text-muted hover:bg-fill hover:text-fg">›</button>
+            </div>
+          </div>
+          <div id="mini-weekdays" class="grid text-center text-[10px] text-muted uppercase"></div>
+          <div id="mini-grid" class="grid gap-y-0.5"></div>
+        </section>
+
+        <section class="border-t border-line px-3 py-2">
+          <div class="mb-1 flex items-center justify-between px-1">
+            <h2 class="text-xs font-semibold text-muted">Agenda’s</h2>
+            <button id="cal-add" type="button" aria-label="Nieuwe agenda" class="rounded-md px-1.5 text-muted hover:bg-fill hover:text-fg">+</button>
+          </div>
+          <ul id="cal-list" class="flex flex-col"></ul>
+        </section>
+
+        <section class="flex min-h-0 flex-1 flex-col border-t border-line px-3 py-3">
+          <h2 id="day-title" class="mb-2 px-1 text-sm font-semibold first-letter:uppercase"></h2>
+          <ul id="day-list" class="flex flex-1 flex-col gap-1 overflow-y-auto"></ul>
+        </section>
+      </aside>
+
+      <main class="relative flex min-w-0 flex-1 flex-col bg-canvas">
+        <header class="flex h-12 shrink-0 items-center gap-2 border-b border-line px-4 [-webkit-app-region:drag]">
+          <h1 id="title" class="truncate text-xl"></h1>
+          <span id="sel-info" hidden aria-live="polite" class="mr-auto rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-white"></span>
+          <span class="mr-auto"></span>
+          <button id="update-pill" type="button" hidden class="rounded-full bg-accent px-3 py-1 text-xs font-medium text-white hover:brightness-110 disabled:opacity-70 [-webkit-app-region:no-drag]"></button>
+
+          <input
+            id="search"
+            type="search"
+            placeholder="Zoek"
+            role="combobox" aria-label="Zoek afspraken" aria-autocomplete="list" aria-expanded="false"
+            class="w-24 rounded-md bg-fill px-2.5 py-1 text-sm outline-none transition-[width] placeholder:text-muted focus:w-44 focus:ring-2 focus:ring-accent/60 [-webkit-app-region:no-drag]"
+          />
+
+          <div id="view-switch" class="flex rounded-lg bg-fill p-0.5 [-webkit-app-region:no-drag]">
+            <button type="button" data-view="day">Dag</button>
+            <button type="button" data-view="week">Week</button>
+            <button type="button" data-view="month">Maand</button>
+            <button type="button" data-view="year">Jaar</button>
+            <button type="button" data-view="list">Lijst</button>
+          </div>
+
+          <div class="flex items-center gap-0.5 [-webkit-app-region:no-drag]">
+            <button id="prev" type="button" aria-label="Vorige" class="rounded-md px-2 py-1.5 hover:bg-fill">
+              <svg class="size-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3 5 8l5 5" /></svg>
+            </button>
+            <button id="today" type="button" class="rounded-md px-2.5 py-1 text-sm hover:bg-fill">Vandaag</button>
+            <button id="next" type="button" aria-label="Volgende" class="rounded-md px-2 py-1.5 hover:bg-fill">
+              <svg class="size-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 3 5 5-5 5" /></svg>
+            </button>
+          </div>
+
+          <button id="chat-open" type="button" aria-label="Assistent" title="Vraag het aan Claude (met je eigen API-sleutel)" class="rounded-md px-2 py-1.5 hover:bg-fill [-webkit-app-region:no-drag]">
+            <svg class="size-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1.5 9.4 6.6 14.5 8 9.4 9.4 8 14.5 6.6 9.4 1.5 8 6.6 6.6z" /></svg>
+          </button>
+
+          <button id="refresh" type="button" aria-label="Vernieuw externe agenda’s" title="Vernieuw externe agenda’s (⌘R)" class="rounded-md px-2 py-1.5 hover:bg-fill [-webkit-app-region:no-drag]">
+            <svg id="refresh-icon" class="size-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9" /><path d="M13.5 2.5v3h-3" /></svg>
+          </button>
+
+          <button id="add" type="button" aria-label="Nieuwe afspraak" class="rounded-md px-2 text-2xl leading-none font-light hover:bg-fill [-webkit-app-region:no-drag]">+</button>
+        </header>
+
+        <div id="view" class="flex min-h-0 flex-1 flex-col"></div>
+
+        <!-- snel een afspraak invoeren in gewone taal -->
+        <div id="quick" hidden class="absolute top-12 right-4 z-20 w-[380px] rounded-xl border border-line bg-canvas p-3 shadow-2xl">
+          <input
+            id="q-input"
+            type="text"
+            autocomplete="off"
+            placeholder="Bijv. Lunch met Sam morgen 12:30"
+            class="w-full rounded-md bg-fill px-3 py-2 text-sm outline-none placeholder:text-muted focus:ring-2 focus:ring-accent/60"
+          />
+          <p id="q-preview" class="mt-2 min-h-8 px-1 text-xs text-muted"></p>
+          <div class="mt-1 flex items-center gap-2">
+            <button id="q-more" type="button" class="rounded-md px-2.5 py-1 text-sm hover:bg-fill">Meer opties…</button>
+            <button id="q-cancel" type="button" class="ml-auto rounded-md bg-fill px-3 py-1 text-sm hover:brightness-95">Annuleer</button>
+            <button id="q-add" type="button" class="rounded-md bg-accent px-3 py-1 text-sm font-medium text-white hover:brightness-110">Voeg toe</button>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <dialog id="event-dialog" class="m-auto max-h-[90vh] w-[470px] overflow-y-auto rounded-xl border border-line bg-canvas p-0 text-fg shadow-2xl backdrop:bg-black/30">
+      <form id="event-form" class="flex flex-col gap-2.5 p-5" autocomplete="off">
+        <p id="e-readonly" hidden role="note" class="rounded-md bg-fill px-3 py-2 text-xs text-muted"></p>
+        <input
+          id="e-title"
+          type="text"
+          required
+          maxlength="100"
+          placeholder="Nieuwe afspraak"
+          class="rounded-md bg-fill px-3 py-2 text-lg font-semibold outline-none placeholder:text-muted focus:ring-2 focus:ring-accent/60"
+        />
+        <input
+          id="e-location"
+          type="text"
+          placeholder="Locatie"
+          class="rounded-md bg-fill px-3 py-1.5 text-sm outline-none placeholder:text-muted focus:ring-2 focus:ring-accent/60"
+        />
+
+        <label class="grid grid-cols-[96px_1fr] items-center gap-2 text-sm">
+          <span class="text-muted">Agenda</span>
+          <span class="flex items-center gap-2">
+            <span id="e-cal-dot" class="size-3 shrink-0 rounded-full bg-cal-blue"></span>
+            <select id="e-calendar" class="min-w-0 flex-1 rounded-md bg-fill px-2 py-1.5 outline-none focus:ring-2 focus:ring-accent/60"></select>
+          </span>
+        </label>
+
+        <label class="grid grid-cols-[96px_1fr] items-center gap-2 text-sm">
+          <span class="text-muted">Hele dag</span>
+          <input id="e-allday" type="checkbox" class="size-4 justify-self-start accent-accent" />
+        </label>
+
+        <label class="grid grid-cols-[96px_1fr] items-center gap-2 text-sm">
+          <span class="text-muted">Taak</span>
+          <span class="flex items-center gap-2">
+            <input id="e-task" type="checkbox" class="size-4 accent-accent" />
+            <span class="text-xs text-muted">met een vinkje om af te werken</span>
+          </span>
+        </label>
+
+        <div class="grid grid-cols-[96px_1fr_1fr] items-center gap-2 text-sm">
+          <span class="text-muted">Begint</span>
+          <input id="e-start-date" type="date" required class="rounded-md bg-fill px-2 py-1.5 outline-none focus:ring-2 focus:ring-accent/60" />
+          <input id="e-start-time" type="time" class="rounded-md bg-fill px-2 py-1.5 outline-none focus:ring-2 focus:ring-accent/60 disabled:opacity-30" />
+          <span class="text-muted">Eindigt</span>
+          <input id="e-end-date" type="date" required class="rounded-md bg-fill px-2 py-1.5 outline-none focus:ring-2 focus:ring-accent/60" />
+          <input id="e-end-time" type="time" class="rounded-md bg-fill px-2 py-1.5 outline-none focus:ring-2 focus:ring-accent/60 disabled:opacity-30" />
+        </div>
+
+        <p id="e-overlap" hidden class="-mt-1 text-xs text-today"></p>
+
+        <label id="e-tz-row" class="grid grid-cols-[96px_1fr] items-center gap-2 text-sm">
+          <span class="text-muted">Tijdzone</span>
+          <select id="e-tz" class="rounded-md bg-fill px-2 py-1.5 outline-none focus:ring-2 focus:ring-accent/60"></select>
+        </label>
+
+        <label class="grid grid-cols-[96px_1fr] items-center gap-2 text-sm">
+          <span class="text-muted">Herhaal</span>
+          <select id="e-repeat" class="rounded-md bg-fill px-2 py-1.5 outline-none focus:ring-2 focus:ring-accent/60"></select>
+        </label>
+
+        <div id="e-until-row" hidden class="grid grid-cols-[96px_1fr_1fr] items-center gap-2 text-sm">
+          <span class="text-muted">Einde herhaling</span>
+          <select id="e-until-mode" class="rounded-md bg-fill px-2 py-1.5 outline-none focus:ring-2 focus:ring-accent/60">
+            <option value="never">Nooit</option>
+            <option value="date">Op datum</option>
+          </select>
+          <input id="e-until-date" type="date" class="rounded-md bg-fill px-2 py-1.5 outline-none focus:ring-2 focus:ring-accent/60 disabled:opacity-30" />
+        </div>
+
+        <label class="grid grid-cols-[96px_1fr] items-center gap-2 text-sm">
+          <span class="text-muted">Melding</span>
+          <select id="e-alert" class="rounded-md bg-fill px-2 py-1.5 outline-none focus:ring-2 focus:ring-accent/60"></select>
+        </label>
+
+        <label id="e-travel-row" class="grid grid-cols-[96px_1fr] items-center gap-2 text-sm">
+          <span class="text-muted">Reistijd</span>
+          <select id="e-travel" class="rounded-md bg-fill px-2 py-1.5 outline-none focus:ring-2 focus:ring-accent/60"></select>
+        </label>
+
+        <div class="grid grid-cols-[96px_1fr] items-start gap-2 text-sm">
+          <span class="pt-1.5 text-muted">Genodigden</span>
+          <div class="flex flex-col gap-1.5">
+            <div id="e-invitees" class="flex flex-wrap gap-1"></div>
+            <input
+              id="e-invitee-input"
+              type="text"
+              placeholder="Naam of e-mail, Enter om toe te voegen"
+              class="rounded-md bg-fill px-2 py-1.5 outline-none placeholder:text-muted focus:ring-2 focus:ring-accent/60"
+            />
+            <div class="flex flex-wrap gap-1.5">
+              <button id="e-mail" type="button" disabled class="rounded-md bg-fill px-2.5 py-1 text-xs hover:brightness-95 disabled:opacity-40" title="Opent je mail-app met de uitnodiging ingevuld voor de genodigden met een e-mailadres">Uitnodiging mailen…</button>
+              <button id="e-ics" type="button" class="rounded-md bg-fill px-2.5 py-1 text-xs hover:brightness-95" title="Bewaar de afspraak als .ics-bestand om als bijlage te versturen">Bewaar als .ics…</button>
+            </div>
+          </div>
+        </div>
+
+        <label class="grid grid-cols-[96px_1fr] items-center gap-2 text-sm">
+          <span class="text-muted">URL</span>
+          <input id="e-url" type="url" placeholder="https://" class="rounded-md bg-fill px-2 py-1.5 outline-none placeholder:text-muted focus:ring-2 focus:ring-accent/60" />
+        </label>
+
+        <textarea
+          id="e-notes"
+          rows="3"
+          placeholder="Notitie"
+          class="resize-none rounded-md bg-fill px-3 py-2 text-sm outline-none placeholder:text-muted focus:ring-2 focus:ring-accent/60"
+        ></textarea>
+
+        <div class="flex items-center gap-2 pt-1">
+          <button type="button" id="e-delete" hidden class="rounded-md px-3 py-1.5 text-sm text-today hover:bg-fill">Verwijder</button>
+          <button type="button" id="e-template" class="rounded-md px-3 py-1.5 text-sm text-muted hover:bg-fill" title="Bewaar deze afspraak als sjabloon om hem later met ⌘K snel opnieuw te maken">Bewaar als sjabloon</button>
+          <button type="button" id="e-cancel" class="ml-auto rounded-md bg-fill px-3 py-1.5 text-sm hover:brightness-95">Annuleer</button>
+          <button type="submit" id="e-save" class="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-white hover:brightness-110">Voeg toe</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="calendar-dialog" class="m-auto w-[340px] rounded-xl border border-line bg-canvas p-0 text-fg shadow-2xl backdrop:bg-black/30">
+      <form id="calendar-form" class="flex flex-col gap-3 p-5" autocomplete="off">
+        <h2 id="c-heading" class="text-base font-semibold">Nieuwe agenda</h2>
+        <input id="c-name" type="text" required maxlength="40" placeholder="Naam" class="rounded-md bg-fill px-3 py-2 text-sm outline-none placeholder:text-muted focus:ring-2 focus:ring-accent/60" />
+        <div id="c-colors" class="flex items-center gap-2" role="radiogroup" aria-label="Kleur"></div>
+        <div class="flex items-center gap-2 pt-1">
+          <button type="button" id="c-delete" hidden class="rounded-md px-3 py-1.5 text-sm text-today hover:bg-fill">Verwijder</button>
+          <button type="button" id="c-cancel" class="ml-auto rounded-md bg-fill px-3 py-1.5 text-sm hover:brightness-95">Annuleer</button>
+          <button type="submit" id="c-save" class="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-white hover:brightness-110">Bewaar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="scope-dialog" class="m-auto w-[360px] rounded-xl border border-line bg-canvas p-0 text-fg shadow-2xl backdrop:bg-black/30">
+      <div class="flex flex-col gap-2 p-5">
+        <h2 id="scope-heading" class="text-base font-semibold">Herhalende afspraak</h2>
+        <p id="scope-message" class="mb-1 text-sm text-muted"></p>
+        <button type="button" data-scope="only" class="rounded-md bg-fill px-3 py-2 text-sm hover:brightness-95">Alleen deze afspraak</button>
+        <button type="button" data-scope="following" class="rounded-md bg-fill px-3 py-2 text-sm hover:brightness-95">Deze en alle volgende</button>
+        <button type="button" data-scope="all" class="rounded-md bg-fill px-3 py-2 text-sm hover:brightness-95">Alle afspraken</button>
+        <button type="button" data-scope="" class="mt-1 rounded-md px-3 py-2 text-sm text-muted hover:bg-fill">Annuleer</button>
+      </div>
+    </dialog>
+
+    <dialog id="source-dialog" aria-labelledby="src-heading" class="m-auto w-[460px] rounded-xl border border-line bg-canvas p-0 text-fg shadow-2xl backdrop:bg-black/30">
+      <form id="source-form" method="dialog" class="flex flex-col gap-3 p-5" autocomplete="off">
+        <h2 id="src-heading" class="text-base font-semibold">Agenda toevoegen</h2>
+        <label class="grid grid-cols-[120px_1fr] items-center gap-2 text-sm">
+          <span class="text-muted">Soort</span>
+          <select id="src-kind" class="rounded-md bg-fill px-2 py-1.5 outline-none placeholder:text-muted focus:ring-2 focus:ring-accent/60">
+            <option value="google">Google Agenda</option>
+            <option value="outlook">Outlook / Microsoft 365</option>
+            <option value="icloud">iCloud</option>
+            <option value="feed">Andere agenda (link)</option>
+            <option value="caldav">CalDAV-server</option>
+          </select>
+        </label>
+        <p id="src-help" class="rounded-md bg-fill px-3 py-2 text-xs text-muted"></p>
+        <label id="src-url-row" class="grid grid-cols-[120px_1fr] items-center gap-2 text-sm">
+          <span class="text-muted">Adres (link)</span>
+          <input id="src-url" type="text" inputmode="url" placeholder="https:// of webcal://" class="rounded-md bg-fill px-2 py-1.5 outline-none placeholder:text-muted focus:ring-2 focus:ring-accent/60" />
+        </label>
+        <label id="src-server-row" class="grid grid-cols-[120px_1fr] items-center gap-2 text-sm" hidden>
+          <span class="text-muted">Server</span>
+          <input id="src-server" type="text" inputmode="url" placeholder="https://cloud.voorbeeld.nl/remote.php/dav" class="rounded-md bg-fill px-2 py-1.5 outline-none placeholder:text-muted focus:ring-2 focus:ring-accent/60" />
+        </label>
+        <label id="src-user-row" class="grid grid-cols-[120px_1fr] items-center gap-2 text-sm" hidden>
+          <span id="src-user-label" class="text-muted">Gebruikersnaam</span>
+          <input id="src-user" type="text" autocomplete="off" class="rounded-md bg-fill px-2 py-1.5 outline-none placeholder:text-muted focus:ring-2 focus:ring-accent/60" />
+        </label>
+        <label id="src-pass-row" class="grid grid-cols-[120px_1fr] items-center gap-2 text-sm" hidden>
+          <span id="src-pass-label" class="text-muted">Wachtwoord</span>
+          <input id="src-pass" type="password" autocomplete="off" class="rounded-md bg-fill px-2 py-1.5 outline-none placeholder:text-muted focus:ring-2 focus:ring-accent/60" />
+        </label>
+        <label id="src-name-row" class="grid grid-cols-[120px_1fr] items-center gap-2 text-sm">
+          <span class="text-muted">Naam (optioneel)</span>
+          <input id="src-name" type="text" class="rounded-md bg-fill px-2 py-1.5 outline-none placeholder:text-muted focus:ring-2 focus:ring-accent/60" />
+        </label>
+        <fieldset id="src-calendars" hidden class="flex flex-col gap-1.5 rounded-md border border-line p-3">
+          <legend class="px-1 text-xs text-muted">Welke agenda’s toevoegen?</legend>
+        </fieldset>
+        <p id="src-error" role="alert" hidden class="text-sm text-today"></p>
+        <div class="flex gap-2 pt-1">
+          <button id="src-cancel" type="button" class="rounded-md px-3 py-1.5 text-sm text-muted hover:bg-fill">Annuleer</button>
+          <button id="src-submit" type="submit" class="ml-auto rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-white hover:brightness-110">Voeg toe</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="chat-dialog" data-panel aria-labelledby="chat-heading" class="fixed top-14 right-4 bottom-4 left-auto m-0 h-auto max-h-none w-[380px] max-w-[92vw] flex-col rounded-xl border border-line bg-canvas p-0 text-fg shadow-2xl open:flex">
+      <div class="flex items-center gap-2 border-b border-line px-3 py-2">
+        <h2 id="chat-heading" class="text-sm font-semibold">Assistent</h2>
+        <select id="chat-model" aria-label="Model" class="ml-auto min-w-0 max-w-[170px] rounded-md bg-fill px-2 py-1 text-xs outline-none focus:ring-2 focus:ring-accent/60"></select>
+        <button id="chat-new" type="button" aria-label="Nieuw gesprek" title="Nieuw gesprek" class="rounded-md px-2 py-1 text-sm hover:bg-fill">↺</button>
+        <button id="chat-close" type="button" aria-label="Sluit assistent" class="rounded-md px-2 py-1 text-sm hover:bg-fill">×</button>
+      </div>
+      <div id="chat-setup" hidden class="flex flex-col gap-2 overflow-y-auto p-3 text-sm">
+        <p>Praat met Claude over je agenda. Dit gebruikt je eigen API-sleutel van Anthropic (apart van een Claude-abonnement; je betaalt per gebruik).</p>
+        <p class="text-xs text-muted">Maak een sleutel op console.anthropic.com. De sleutel wordt versleuteld op deze computer bewaard. Wat Claude uit je agenda leest gaat naar Anthropic; de privacy-opties onder Voorkeuren → Claude gelden ook hier.</p>
+        <label class="flex flex-col gap-1 text-xs text-muted">API-sleutel
+          <input id="chat-key" type="password" autocomplete="off" spellcheck="false" placeholder="sk-ant-…" class="rounded-md bg-fill px-2 py-1.5 text-sm text-fg outline-none placeholder:text-muted focus:ring-2 focus:ring-accent/60" />
+        </label>
+        <div class="flex items-center gap-2">
+          <button id="chat-save" type="button" class="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-white hover:brightness-110">Bewaar sleutel</button>
+          <p id="chat-setup-status" role="status" class="text-xs text-muted"></p>
+        </div>
+      </div>
+      <div id="chat-log" role="log" aria-live="polite" aria-label="Gesprek" class="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-3 text-sm"></div>
+      <form id="chat-form" class="flex items-end gap-2 border-t border-line p-2">
+        <textarea id="chat-input" rows="2" aria-label="Je bericht" placeholder="Bijv. Plan een uur sporten volgende week" class="min-w-0 flex-1 resize-none rounded-md bg-fill px-2 py-1.5 text-sm outline-none placeholder:text-muted focus:ring-2 focus:ring-accent/60"></textarea>
+        <button id="chat-send" type="submit" class="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-white hover:brightness-110 disabled:opacity-50">Stuur</button>
+      </form>
+      <div class="flex items-center border-t border-line px-3 py-1.5 text-xs text-muted">
+        <span id="chat-note">Wijzigingen zie je meteen in de agenda en zijn ongedaan te maken.</span>
+        <button id="chat-forget" type="button" class="ml-auto rounded px-1.5 py-0.5 hover:bg-fill">Sleutel verwijderen</button>
+      </div>
+    </dialog>
+
+    <dialog id="stats-dialog" aria-labelledby="st-heading" class="m-auto max-h-[90vh] w-[480px] max-w-[92vw] overflow-y-auto rounded-xl border border-line bg-canvas p-0 text-fg shadow-2xl backdrop:bg-black/30">
+      <div class="flex flex-col gap-3 p-5">
+        <div class="flex items-center gap-2">
+          <h2 id="st-heading" class="text-base font-semibold">Statistieken</h2>
+          <select id="st-period" aria-label="Periode" class="ml-auto rounded-md bg-fill px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-accent/60">
+            <option value="week">Deze week</option>
+            <option value="last-week">Vorige week</option>
+            <option value="month">Deze maand</option>
+            <option value="last-month">Vorige maand</option>
+          </select>
+        </div>
+        <div id="st-body" class="flex flex-col gap-3"></div>
+        <div class="flex justify-end pt-1">
+          <button id="st-close" type="button" class="rounded-md bg-fill px-3 py-1.5 text-sm hover:brightness-95">Sluiten</button>
+        </div>
+      </div>
+    </dialog>
+
+    <dialog id="palette" aria-label="Commandopalet" class="mx-auto mt-[12vh] mb-auto w-[560px] max-w-[92vw] rounded-xl border border-line bg-canvas p-0 text-fg shadow-2xl backdrop:bg-black/30">
+      <div class="border-b border-line p-3">
+        <input
+          id="pal-input"
+          type="text"
+          role="combobox"
+          aria-expanded="true"
+          aria-controls="pal-list"
+          aria-autocomplete="list"
+          aria-label="Zoek een opdracht, ga naar een datum of maak een afspraak"
+          placeholder="Ga naar 3 november, zoek een afspraak, of typ: Lunch morgen 12:30"
+          autocomplete="off"
+          class="w-full rounded-md bg-fill px-3 py-2 text-sm outline-none placeholder:text-muted focus:ring-2 focus:ring-accent/60"
+        />
+      </div>
+      <ul id="pal-list" role="listbox" aria-label="Resultaten" class="max-h-80 overflow-y-auto p-1"></ul>
+    </dialog>
+
+    <dialog id="settings-dialog" class="m-auto max-h-[90vh] w-[440px] overflow-y-auto rounded-xl border border-line bg-canvas p-0 text-fg shadow-2xl backdrop:bg-black/30">
+      <form id="settings-form" method="dialog" class="flex flex-col gap-3 p-5">
+        <h2 class="text-base font-semibold">Voorkeuren</h2>
+        <label class="grid grid-cols-[150px_1fr] items-center gap-2 text-sm">
+          <span class="text-muted">Week begint op</span>
+          <select id="s-weekstart" class="rounded-md bg-fill px-2 py-1.5 outline-none focus:ring-2 focus:ring-accent/60">
+            <option value="1">Maandag</option>
+            <option value="0">Zondag</option>
+            <option value="6">Zaterdag</option>
+          </select>
+        </label>
+        <label class="grid grid-cols-[150px_1fr] items-center gap-2 text-sm">
+          <span class="text-muted">24-uursklok</span>
+          <input id="s-clock24" type="checkbox" class="size-4 justify-self-start accent-accent" />
+        </label>
+        <label class="grid grid-cols-[150px_1fr] items-center gap-2 text-sm">
+          <span class="text-muted">Weeknummers tonen</span>
+          <input id="s-weeknumbers" type="checkbox" class="size-4 justify-self-start accent-accent" />
+        </label>
+        <label class="grid grid-cols-[150px_1fr] items-center gap-2 text-sm">
+          <span class="text-muted">Standaard melding</span>
+          <select id="s-alert" class="rounded-md bg-fill px-2 py-1.5 outline-none focus:ring-2 focus:ring-accent/60"></select>
+        </label>
+        <p class="text-xs text-muted">Meldingen verschijnen zolang de app geopend is.</p>
+        <label class="grid grid-cols-[150px_1fr] items-center gap-2 text-sm">
+          <span class="text-muted">Automatisch vernieuwen</span>
+          <select id="s-refresh" class="rounded-md bg-fill px-2 py-1.5 outline-none focus:ring-2 focus:ring-accent/60"></select>
+        </label>
+        <p class="text-xs text-muted">Hoe vaak Google, iCloud en andere gekoppelde agenda’s worden opgehaald. Met de knop bovenin (⌘R) vernieuw je altijd meteen.</p>
+        <section aria-labelledby="wx-heading" class="mt-1 flex flex-col gap-2 border-t border-line pt-3">
+          <h3 id="wx-heading" class="text-sm font-semibold">Weer</h3>
+          <p class="text-xs text-muted">Toont de weersverwachting bij de dagen. Alleen de plaatsnaam en de coördinaten gaan naar open-meteo.com; er is geen account nodig.</p>
+          <div class="flex items-center gap-2">
+            <input id="s-wx-city" type="text" aria-label="Plaats voor het weer" placeholder="Plaats, bijv. Utrecht" autocomplete="off" class="min-w-0 flex-1 rounded-md bg-fill px-2 py-1.5 text-sm outline-none placeholder:text-muted focus:ring-2 focus:ring-accent/60" />
+            <button id="s-wx-search" type="button" class="rounded-md bg-fill px-3 py-1.5 text-sm hover:brightness-95">Zoek</button>
+            <button id="s-wx-off" type="button" class="rounded-md px-2 py-1.5 text-sm text-muted hover:bg-fill">Uit</button>
+          </div>
+          <p id="s-wx-status" role="status" class="text-xs text-muted"></p>
+        </section>
+        <section aria-labelledby="clk-heading" class="mt-1 flex flex-col gap-2 border-t border-line pt-3">
+          <h3 id="clk-heading" class="text-sm font-semibold">Extra tijdzones</h3>
+          <p class="text-xs text-muted">Toont de klok in een andere tijdzone naast het uurraster van de dag- en weekweergave.</p>
+          <div class="grid grid-cols-2 gap-2">
+            <select id="s-clock1" aria-label="Eerste extra tijdzone" class="min-w-0 rounded-md bg-fill px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-accent/60"></select>
+            <select id="s-clock2" aria-label="Tweede extra tijdzone" class="min-w-0 rounded-md bg-fill px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-accent/60"></select>
+          </div>
+        </section>
+        <section aria-labelledby="sys-heading" class="mt-1 flex flex-col gap-2 border-t border-line pt-3">
+          <h3 id="sys-heading" class="text-sm font-semibold">Menubalk en sneltoets</h3>
+          <label class="flex items-center gap-2 text-sm">
+            <input id="s-tray" type="checkbox" class="size-4 accent-accent" />
+            <span>Toon de volgende afspraak in de menubalk</span>
+          </label>
+          <div class="grid grid-cols-[150px_1fr] items-center gap-2 text-sm">
+            <label for="s-shortcut" class="text-muted">Sneltoets voor een nieuwe afspraak</label>
+            <div class="flex items-center gap-2">
+              <input id="s-shortcut" type="text" readonly placeholder="Klik en druk een toetscombinatie" class="min-w-0 flex-1 rounded-md bg-fill px-2 py-1.5 text-sm outline-none placeholder:text-muted focus:ring-2 focus:ring-accent/60" />
+              <button id="s-shortcut-clear" type="button" class="rounded-md px-2 py-1.5 text-sm text-muted hover:bg-fill">Wis</button>
+            </div>
+          </div>
+          <p id="s-shortcut-status" role="status" class="text-xs text-muted">Werkt ook als de app op de achtergrond staat.</p>
+        </section>
+        <section aria-labelledby="tpl-heading" class="mt-1 flex flex-col gap-2 border-t border-line pt-3">
+          <h3 id="tpl-heading" class="text-sm font-semibold">Sjablonen</h3>
+          <p class="text-xs text-muted">Afspraken die je vaak maakt. Bewaar er een via “Bewaar als sjabloon” in een afspraak; maak hem daarna met ⌘K → “Sjabloon: …”.</p>
+          <ul id="tpl-list" class="flex flex-col gap-1"></ul>
+        </section>
+        <section aria-labelledby="bak-heading" class="mt-1 flex flex-col gap-2 border-t border-line pt-3">
+          <h3 id="bak-heading" class="text-sm font-semibold">Back-ups</h3>
+          <p class="text-xs text-muted">De app bewaart automatisch kopieën van je agenda (maximaal 20, hooguit één per half uur). Zet een eerdere versie terug als er iets misgegaan is.</p>
+          <div class="flex items-center gap-2">
+            <select id="bak-list" aria-label="Back-up kiezen" class="min-w-0 flex-1 rounded-md bg-fill px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-accent/60"></select>
+            <button id="bak-restore" type="button" class="rounded-md bg-fill px-3 py-1.5 text-sm hover:brightness-95 disabled:opacity-50">Herstel</button>
+          </div>
+          <p id="bak-status" role="status" class="text-xs text-muted"></p>
+        </section>
+        <section aria-labelledby="mcp-heading" class="mt-1 flex flex-col gap-2 border-t border-line pt-3">
+          <h3 id="mcp-heading" class="text-sm font-semibold">Claude</h3>
+          <p class="text-xs text-muted">Laat Claude (Desktop of Code, met je eigen abonnement) je agenda lezen en beheren. Alles wat Claude wijzigt is hier te zien en met “Ongedaan maken” terug te draaien. Je agenda wordt daarbij naar Anthropic gestuurd, zodra je Claude erom vraagt.</p>
+          <label class="flex items-center gap-2 text-sm">
+            <input id="mcp-write" type="checkbox" class="size-4 accent-accent" />
+            <span>Claude mag afspraken maken, wijzigen en verwijderen</span>
+          </label>
+          <label class="flex items-center gap-2 text-sm">
+            <input id="mcp-notes" type="checkbox" class="size-4 accent-accent" />
+            <span>Claude mag notities zien</span>
+          </label>
+          <label class="flex items-center gap-2 text-sm">
+            <input id="mcp-invitees" type="checkbox" class="size-4 accent-accent" />
+            <span>Claude mag genodigden zien</span>
+          </label>
+          <div class="flex flex-wrap items-center gap-2">
+            <button id="mcp-install" type="button" class="rounded-md bg-fill px-3 py-1.5 text-sm hover:brightness-95">Voeg toe aan Claude Desktop</button>
+            <button id="mcp-copy" type="button" class="rounded-md px-3 py-1.5 text-sm text-muted hover:bg-fill">Kopieer opdracht voor Claude Code</button>
+          </div>
+          <p id="mcp-status" role="status" class="text-xs text-muted"></p>
+        </section>
+        <section aria-labelledby="upd-heading" class="mt-1 flex flex-col gap-2 border-t border-line pt-3">
+          <h3 id="upd-heading" class="text-sm font-semibold">Updates</h3>
+          <p id="upd-status" role="status" class="text-sm text-muted"></p>
+          <progress id="upd-progress" hidden max="100" value="0" aria-label="Voortgang van het downloaden" class="h-1.5 w-full accent-accent"></progress>
+          <div>
+            <button id="upd-action" type="button" class="rounded-md bg-fill px-3 py-1.5 text-sm hover:brightness-95 disabled:opacity-50">Zoek naar updates</button>
+          </div>
+        </section>
+        <div class="flex pt-1">
+          <button type="submit" class="ml-auto rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-white hover:brightness-110">Klaar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script type="module" src="js/app.js"></script>
+  </body>
+</html>

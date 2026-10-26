@@ -1,0 +1,116 @@
+{
+  "name": "electron-begin",
+  "version": "0.1.0",
+  "description": "Begin project voor een Electron app",
+  "main": "dist/main.js",
+  "scripts": {
+    "build:ts": "tsc -p tsconfig.main.json && tsc -p tsconfig.renderer.json",
+    "build:static": "node scripts/copy-static.mjs",
+    "build:css": "tailwindcss -i src/input.css -o dist/output.css --minify",
+    "build": "npm run build:ts && npm run build:static && npm run build:css",
+    "watch:css": "tailwindcss -i src/input.css -o dist/output.css --watch",
+    "typecheck": "tsc -p tsconfig.main.json --noEmit && tsc -p tsconfig.renderer.json --noEmit && tsc -p tsconfig.test.json",
+    "start": "npm run build && electron .",
+    "test": "vitest run",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "audit": "npm audit --audit-level=moderate",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "npm run build && playwright test",
+    "test:e2e:ui": "npm run build && playwright test --ui",
+    "test:mutation": "stryker run",
+    "check": "npm run typecheck && npm run lint && npm run format:check && npm run audit && npm run test",
+    "precommit": "npm run lint && npm run typecheck && npm run test",
+    "dist": "npm run build && electron-builder",
+    "dist:dir": "npm run build && electron-builder --dir",
+    "pack:test": "node scripts/pack-dir.mjs",
+    "test:packaged": "npm run pack:test && playwright test packaged",
+    "release": "npm version patch -m \"Versie %s\" && git push --follow-tags",
+    "release:minor": "npm version minor -m \"Versie %s\" && git push --follow-tags",
+    "release:major": "npm version major -m \"Versie %s\" && git push --follow-tags"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.64.1",
+    "@stryker-mutator/core": "^10.1.1",
+    "@stryker-mutator/vitest-runner": "^10.1.1",
+    "@tailwindcss/cli": "^4.3.3",
+    "@testing-library/dom": "^10.4.2",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/user-event": "^14.6.8",
+    "@types/node": "^24.19.2",
+    "@vitest/coverage-v8": "^5.0.5",
+    "axe-core": "^4.14.0",
+    "electron": "^45.0.0",
+    "electron-builder": "^26.18.0",
+    "eslint": "^10.13.0",
+    "jsdom": "^30.1.3",
+    "prettier": "^3.9.10",
+    "tailwindcss": "^4.3.3",
+    "typescript": "~6.0",
+    "typescript-eslint": "^8.72.0",
+    "vitest": "^5.0.5"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.3.0",
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "electron-updater": "^6.8.11",
+    "zod": "^4.6.7"
+  },
+  "author": "Agenda",
+  "productName": "Agenda",
+  "build": {
+    "appId": "nl.agenda.app",
+    "productName": "Agenda",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ]
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Office"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "releaseType": "release"
+      }
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mitaadevelop/Notch.git"
+  }
+}

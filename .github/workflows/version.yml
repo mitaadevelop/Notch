@@ -1,0 +1,47 @@
+name: Nieuwe versie
+
+# Een nieuwe versie uitbrengen vanuit GitHub zelf: Actions → "Nieuwe versie" → Run workflow.
+# Dit verhoogt de versie in package.json, maakt de tag (bijv. v0.1.1) en start daarna de workflow "Release",
+# die de app bouwt en in een GitHub Release zet.
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: 'Soort versie: patch (0.1.0 → 0.1.1), minor (→ 0.2.0) of major (→ 1.0.0)'
+        type: choice
+        options: [patch, minor, major]
+        default: patch
+
+permissions:
+  contents: write # de versie-commit en de tag pushen
+  actions: write # de workflow "Release" starten
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Alleen vanaf main
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "::error::Start deze workflow vanaf de branch main"
+          exit 1
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Versie verhogen en tag maken
+        id: bump
+        env:
+          BUMP: ${{ inputs.bump }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          npm version "$BUMP" -m "Versie %s"
+          echo "tag=v$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+      - name: Pushen en de release starten
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.bump.outputs.tag }}
+        run: |
+          git push origin HEAD:main "$TAG"
+          gh workflow run release.yml --ref "$TAG"

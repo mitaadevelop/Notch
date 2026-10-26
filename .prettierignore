@@ -1,0 +1,13 @@
+dist/
+coverage/
+playwright-report/
+test-results/
+.stryker-tmp/
+.trail/
+.claude/
+package-lock.json
+README.md
+src/renderer.js
+src/index.html
+reports/
+release/

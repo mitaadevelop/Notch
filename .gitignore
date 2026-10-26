@@ -1,0 +1,23 @@
+node_modules/
+dist/
+out/
+.DS_Store
+src/output.css
+
+# graft's local graph cache — regenerable, not committed (run `graft build`).
+/graft/
+
+# testen
+playwright-report/
+test-results/
+coverage/
+.stryker-tmp/
+reports/
+release/
+
+# persoonlijke gereedschapsmappen
+.claude/
+.trail/
+
+# los bestand dat niet bij de app hoort
+/logos-export.html
